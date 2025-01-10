@@ -8,12 +8,25 @@ import {
   CardHeader,
   CardTitle
 } from "./ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select"
 
 interface ApiKeyAuthProps {
-  onApiKeySubmit: (apiKey: string) => void
+  onApiKeySubmit: (config: ApiKeyConfig) => void
+}
+
+interface ApiKeyConfig {
+  provider: 'openai' | 'gemini' | 'groq';
+  apiKey: string;
 }
 
 const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'gemini' | 'groq'>('openai')
   const [apiKey, setApiKey] = useState("")
   const contentRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -44,12 +57,24 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (apiKey.trim()) {
-      onApiKeySubmit(apiKey.trim())
+      onApiKeySubmit({
+        provider: selectedProvider,
+        apiKey: apiKey.trim()
+      })
     }
   }
 
   const handleOpenLink = (url: string) => {
     window.electronAPI.openExternal(url)
+  }
+
+  const getKeyPlaceholder = () => {
+    switch (selectedProvider) {
+      case 'openai': return 'sk-...'
+      case 'gemini': return 'AI...'
+      case 'groq': return 'gsk_...'
+      default: return 'Enter API Key'
+    }
   }
 
   return (
@@ -63,17 +88,29 @@ const ApiKeyAuth: React.FC<ApiKeyAuthProps> = ({ onApiKeySubmit }) => {
             Welcome to Interview Coder
           </CardTitle>
           <CardDescription className="text-center text-gray-500">
-            Please enter your OpenAI API key to continue. Your key will not be
-            stored, so keep it in a safe place to copy it for next time. Press
-            Cmd + B to hide/show the window.
+            Please select an AI provider and enter your API key to continue.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-4">
+              <Select
+                value={selectedProvider}
+                onValueChange={(value: 'openai' | 'gemini' | 'groq') => setSelectedProvider(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI Provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                  <SelectItem value="gemini">Google Gemini</SelectItem>
+                  <SelectItem value="groq">Groq</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Input
                 type="password"
-                placeholder="sk-..."
+                placeholder={getKeyPlaceholder()}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 className="w-full"

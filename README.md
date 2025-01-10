@@ -77,7 +77,10 @@ The application uses unidentifiable global keyboard shortcuts that won't be dete
 
 - Node.js (v16 or higher)
 - npm or bun package manager
-- OpenAI API key (for AI features)
+- One of the following API keys:
+  - OpenAI API key
+  - Google Gemini API key
+  - Groq API key
 - Screen Recording Permission for Terminal/IDE
   - On macOS:
     1. Go to System Preferences > Security & Privacy > Privacy > Screen Recording
@@ -133,7 +136,9 @@ This will:
 
 ## Configuration
 
-1. On first launch, you'll need to provide your OpenAI API key
+1. On first launch, you'll need to:
+   - Select your preferred AI provider
+   - Provide the corresponding API key
 2. The application will store your settings locally using electron-store
 
 ## Building (for Roy)

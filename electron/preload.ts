@@ -7,7 +7,7 @@ interface ElectronAPI {
     width: number
     height: number
   }) => Promise<void>
-  getApiKey: () => Promise<string | null>
+  getApiKey: () => Promise<string | null> // Returns stringified ApiKeyConfig
   clearStore: () => Promise<{ success: boolean; error?: string }>
 
   getScreenshots: () => Promise<{
@@ -37,7 +37,7 @@ interface ElectronAPI {
   moveWindowLeft: () => Promise<void>
   moveWindowRight: () => Promise<void>
   updateApiKey: (apiKey: string) => Promise<void>
-  setApiKey: (apiKey: string) => Promise<{ success: boolean }>
+  setApiKey: (config: string) => Promise<{ success: boolean; error?: string }> // Takes stringified ApiKeyConfig
   openExternal: (url: string) => void
 }
 
@@ -186,7 +186,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   moveWindowRight: () => ipcRenderer.invoke("move-window-right"),
   updateApiKey: (apiKey: string) =>
     ipcRenderer.invoke("update-api-key", apiKey),
-  setApiKey: (apiKey: string) => ipcRenderer.invoke("set-api-key", apiKey),
+  setApiKey: (config: string) => ipcRenderer.invoke("set-api-key", config),
   openExternal: (url: string) => shell.openExternal(url)
 } as ElectronAPI)
 

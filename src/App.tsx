@@ -86,6 +86,11 @@ export function useToast() {
   return context
 }
 
+interface ApiKeyConfig {
+  provider: 'openai' | 'gemini' | 'groq';
+  apiKey: string;
+}
+
 const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -97,8 +102,8 @@ const App: React.FC = () => {
     variant: "neutral"
   })
 
-  const handleApiKeySubmit = async (key: string) => {
-    const result = await window.electronAPI.setApiKey(key)
+  const handleApiKeySubmit = async (config: ApiKeyConfig) => {
+    const result = await window.electronAPI.setApiKey(JSON.stringify(config))
     if (result.success) {
       setIsAuthenticated(true)
     }
@@ -197,8 +202,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkApiKey = async () => {
-      const apiKey = await window.electronAPI.getApiKey()
-      if (apiKey) {
+      const apiConfig = await window.electronAPI.getApiKey()
+      if (apiConfig) {
         setIsAuthenticated(true)
       }
     }
