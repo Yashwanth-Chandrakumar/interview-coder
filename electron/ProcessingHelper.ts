@@ -267,7 +267,7 @@ export class ProcessingHelper {
         // First API call - extract problem info
         try {
           const extractResponse = await axios.post(
-            `${API_BASE_URL}/api/extract`,
+            `http://localhost:3000/api/extract`,
             { imageDataList, language },
             {
               signal,
@@ -381,7 +381,7 @@ export class ProcessingHelper {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/generate`,
+        `http://localhost:3000/api/generate`,
         { ...problemInfo, language },
         {
           signal,

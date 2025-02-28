@@ -1,4 +1,3 @@
-// file: src/components/SubscribedApp.tsx
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import Queue from "../_pages/Queue"
@@ -21,30 +20,8 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
-  // Let's ensure we reset queries etc. if some electron signals happen
-  useEffect(() => {
-    const cleanup = window.electronAPI.onResetView(() => {
-      queryClient.invalidateQueries({
-        queryKey: ["screenshots"]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ["problem_statement"]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ["solution"]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ["new_solution"]
-      })
-      setView("queue")
-    })
-
-    return () => {
-      cleanup()
-    }
-  }, [])
-
-  // Dynamically update the window size
+  // Removed the dynamic window dimension update effect that was causing the overlay.
+  /*
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -58,7 +35,6 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
     const resizeObserver = new ResizeObserver(updateDimensions)
     resizeObserver.observe(containerRef.current)
 
-    // Also watch DOM changes
     const mutationObserver = new MutationObserver(updateDimensions)
     mutationObserver.observe(containerRef.current, {
       childList: true,
@@ -67,7 +43,6 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
       characterData: true
     })
 
-    // Initial dimension update
     updateDimensions()
 
     return () => {
@@ -75,6 +50,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
       mutationObserver.disconnect()
     }
   }, [view])
+  */
 
   // Listen for events that might switch views or show errors
   useEffect(() => {
@@ -83,27 +59,15 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
         setView("solutions")
       }),
       window.electronAPI.onUnauthorized(() => {
-        queryClient.removeQueries({
-          queryKey: ["screenshots"]
-        })
-        queryClient.removeQueries({
-          queryKey: ["solution"]
-        })
-        queryClient.removeQueries({
-          queryKey: ["problem_statement"]
-        })
+        queryClient.removeQueries({ queryKey: ["screenshots"] })
+        queryClient.removeQueries({ queryKey: ["solution"] })
+        queryClient.removeQueries({ queryKey: ["problem_statement"] })
         setView("queue")
       }),
       window.electronAPI.onResetView(() => {
-        queryClient.removeQueries({
-          queryKey: ["screenshots"]
-        })
-        queryClient.removeQueries({
-          queryKey: ["solution"]
-        })
-        queryClient.removeQueries({
-          queryKey: ["problem_statement"]
-        })
+        queryClient.removeQueries({ queryKey: ["screenshots"] })
+        queryClient.removeQueries({ queryKey: ["solution"] })
+        queryClient.removeQueries({ queryKey: ["problem_statement"] })
         setView("queue")
       }),
       window.electronAPI.onResetView(() => {
@@ -111,9 +75,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
       }),
       window.electronAPI.onProblemExtracted((data: any) => {
         if (view === "queue") {
-          queryClient.invalidateQueries({
-            queryKey: ["problem_statement"]
-          })
+          queryClient.invalidateQueries({ queryKey: ["problem_statement"] })
           queryClient.setQueryData(["problem_statement"], data)
         }
       }),
@@ -122,7 +84,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
       })
     ]
     return () => cleanupFunctions.forEach((fn) => fn())
-  }, [view])
+  }, [view, queryClient, showToast])
 
   return (
     <div ref={containerRef} className="min-h-0">
