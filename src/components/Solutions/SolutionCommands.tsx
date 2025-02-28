@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useToast } from "../../contexts/toast"
-import { Screenshot } from "../../types/screenshots"
 import { supabase } from "../../lib/supabase"
-import { LanguageSelector } from "../shared/LanguageSelector"
+import { Screenshot } from "../../types/screenshots"
 import { COMMAND_KEY } from '../../utils/platform'
+import { LanguageSelector } from "../shared/LanguageSelector"
 
 export interface SolutionCommandsProps {
   onTooltipVisibilityChange: (visible: boolean, height: number) => void
@@ -78,7 +78,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
         <div className="text-xs text-white/90 backdrop-blur-md bg-black/60 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
           {/* Show/Hide - Always visible */}
           <div
-            className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
             onClick={async () => {
               try {
                 const result = await window.electronAPI.toggleMainWindow()
@@ -107,7 +107,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
           {!isProcessing && (
             <>
               <div
-                className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-2 cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                 onClick={async () => {
                   try {
                     const result = await window.electronAPI.triggerScreenshot()
@@ -138,7 +138,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
 
               {extraScreenshots.length > 0 && (
                 <div
-                  className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-2 cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                   onClick={async () => {
                     try {
                       const result =
@@ -180,7 +180,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
 
           {/* Start Over - Always visible */}
           <div
-            className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
             onClick={async () => {
               try {
                 const result = await window.electronAPI.triggerReset()
@@ -215,7 +215,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
             onMouseLeave={handleMouseLeave}
           >
             {/* Gear icon */}
-            <div className="w-4 h-4 flex items-center justify-center cursor-pointer text-white/70 hover:text-white/90 transition-colors">
+            <div className="w-4 h-4 flex items-center justify-center cursor-default text-white/70 hover:text-white/90 transition-colors">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -248,7 +248,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                     <div className="space-y-3">
                       {/* Show/Hide - Always visible */}
                       <div
-                        className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                        className="cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                         onClick={async () => {
                           try {
                             const result =
@@ -294,7 +294,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                       {!isProcessing && (
                         <>
                           <div
-                            className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                            className="cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                             onClick={async () => {
                               try {
                                 const result =
@@ -339,7 +339,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
 
                           {extraScreenshots.length > 0 && (
                             <div
-                              className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                              className="cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                               onClick={async () => {
                                 try {
                                   const result =
@@ -390,7 +390,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
 
                       {/* Start Over - Always visible */}
                       <div
-                        className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                        className="cursor-default rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                         onClick={async () => {
                           try {
                             const result =
@@ -430,7 +430,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                       />
 
                       {/* Credits Display */}
-                      <div className="mb-3 px-2 space-y-1">
+                      {/* <div className="mb-3 px-2 space-y-1">
                         <div className="flex items-center justify-between text-[13px] font-medium text-white/90">
                           <span>Credits Remaining</span>
                           <span>{credits} / 50</span>
@@ -469,7 +469,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                           </svg>
                         </div>
                         Log Out
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 </div>

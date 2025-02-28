@@ -40,11 +40,11 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <select
           value={currentLanguage}
           onChange={handleLanguageChange}
-          className="bg-white/10 rounded px-2 py-1 text-sm outline-none border border-white/10 focus:border-white/20 hover:bg-white/20 transition-colors cursor-default appearance-none"
+          className="bg-white/10 rounded px-2 py-1 text-sm outline-none border border-white/10 focus:border-white/20 hover:bg-white/20 transition-colors cursor-default"
           style={{ 
-            WebkitAppearance: 'menulist',
-            MozAppearance: 'menulist',
-            appearance: 'menulist'
+            WebkitAppearance: 'menulist-button',
+            MozAppearance: 'menulist-button',
+            appearance: 'menulist-button'
           }}
         >
           <option value="python" className="cursor-default bg-black/80">Python</option>

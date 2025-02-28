@@ -282,14 +282,17 @@ const Solutions: React.FC<SolutionsProps> = ({
           console.warn("Received empty or invalid solution data")
           return
         }
-        console.log({ data })
+        
+        // Fix the code formatting by replacing escaped newlines with actual newlines
+        const formattedCode = data.code.replace(/\\n/g, '\n');
+        
         const solutionData = {
-          code: data.code,
+          code: formattedCode, // Use the properly formatted code
           thoughts: data.thoughts,
           time_complexity: data.time_complexity,
           space_complexity: data.space_complexity
         }
-
+      
         queryClient.setQueryData(["solution"], solutionData)
         setSolutionData(solutionData.code || null)
         setThoughtsData(solutionData.thoughts || null)

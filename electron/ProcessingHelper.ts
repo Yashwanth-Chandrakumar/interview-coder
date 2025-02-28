@@ -1,4 +1,3 @@
-// ProcessingHelper.ts
 import fs from "node:fs"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { IProcessingHelperDeps } from "./main"
@@ -24,85 +23,64 @@ export class ProcessingHelper {
     this.screenshotHelper = deps.getScreenshotHelper()
   }
 
-  private async waitForInitialization(
-    mainWindow: BrowserWindow
-  ): Promise<void> {
-    let attempts = 0
-    const maxAttempts = 50 // 5 seconds total
-
-    while (attempts < maxAttempts) {
-      const isInitialized = await mainWindow.webContents.executeJavaScript(
-        "window.__IS_INITIALIZED__"
-      )
-      if (isInitialized) return
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      attempts++
-    }
-    throw new Error("App failed to initialize after 5 seconds")
-  }
-
-  private async getCredits(): Promise<number> {
-    const mainWindow = this.deps.getMainWindow()
-    if (!mainWindow) return 0
-
+  private async waitForInitialization(mainWindow: BrowserWindow): Promise<void> {
+    let attempts = 0;
+    const maxAttempts = 100; // Increase from 50 to 100 (10 seconds total)
+  
     try {
-      await this.waitForInitialization(mainWindow)
-      const credits = await mainWindow.webContents.executeJavaScript(
-        "window.__CREDITS__"
-      )
-
-      if (
-        typeof credits !== "number" ||
-        credits === undefined ||
-        credits === null
-      ) {
-        console.warn("Credits not properly initialized")
-        return 0
+      while (attempts < maxAttempts) {
+        // Check if the window is valid before executing JavaScript
+        if (mainWindow.isDestroyed()) {
+          throw new Error("Window was destroyed during initialization check");
+        }
+        
+        const isInitialized = await mainWindow.webContents.executeJavaScript(
+          "window.__IS_INITIALIZED__ || false" // Add fallback to prevent undefined errors
+        );
+        
+        if (isInitialized) return;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        attempts++;
       }
-
-      return credits
+      console.warn("App initialization timed out, proceeding with defaults");
+      // Don't throw an error, just continue with defaults
     } catch (error) {
-      console.error("Error getting credits:", error)
-      return 0
+      console.error("Error checking initialization status:", error);
+      // Don't rethrow, just continue with defaults
     }
   }
 
   private async getLanguage(): Promise<string> {
-    const mainWindow = this.deps.getMainWindow()
-    if (!mainWindow) return "python"
-
+    const mainWindow = this.deps.getMainWindow();
+    if (!mainWindow || mainWindow.isDestroyed()) return "python";
+  
     try {
-      await this.waitForInitialization(mainWindow)
-      const language = await mainWindow.webContents.executeJavaScript(
-        "window.__LANGUAGE__"
-      )
-
-      if (
-        typeof language !== "string" ||
-        language === undefined ||
-        language === null
-      ) {
-        console.warn("Language not properly initialized")
-        return "python"
+      await this.waitForInitialization(mainWindow);
+      
+      // Use a fallback if executeJavaScript fails
+      try {
+        const language = await mainWindow.webContents.executeJavaScript(
+          "window.__LANGUAGE__ || 'python'" // Add fallback
+        );
+  
+        if (typeof language === "string" && language) {
+          return language;
+        }
+      } catch (error) {
+        console.warn("Error accessing language variable:", error);
       }
-
-      return language
+      
+      // Default fallback
+      return "python";
     } catch (error) {
-      console.error("Error getting language:", error)
-      return "python"
+      console.error("Error getting language:", error);
+      return "python";
     }
   }
 
   public async processScreenshots(): Promise<void> {
     const mainWindow = this.deps.getMainWindow()
     if (!mainWindow) return
-
-    // Check if we have any credits left
-    const credits = await this.getCredits()
-    if (credits < 1) {
-      mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.OUT_OF_CREDITS)
-      return
-    }
 
     const view = this.deps.getView()
     console.log("Processing screenshots in view:", view)
@@ -133,11 +111,7 @@ export class ProcessingHelper {
 
         if (!result.success) {
           console.log("Processing failed:", result.error)
-          if (result.error?.includes("API Key out of credits")) {
-            mainWindow.webContents.send(
-              this.deps.PROCESSING_EVENTS.OUT_OF_CREDITS
-            )
-          } else if (result.error?.includes("OpenAI API key not found")) {
+          if (result.error?.includes("OpenAI API key not found")) {
             mainWindow.webContents.send(
               this.deps.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
               "OpenAI API key not found in environment variables. Please set the OPEN_AI_API_KEY environment variable."
@@ -336,9 +310,6 @@ export class ProcessingHelper {
                 "Operation timed out after 1 minute. Please try again."
               )
             }
-            if (error.response.data.error.includes("API Key out of credits")) {
-              throw new Error(error.response.data.error)
-            }
             throw new Error(error.response.data.error)
           }
 
@@ -375,11 +346,11 @@ export class ProcessingHelper {
     try {
       const problemInfo = this.deps.getProblemInfo()
       const language = await this.getLanguage()
-
+  
       if (!problemInfo) {
         throw new Error("No problem info available")
       }
-
+  
       const response = await axios.post(
         `http://localhost:3000/api/generate`,
         { ...problemInfo, language },
@@ -395,11 +366,51 @@ export class ProcessingHelper {
           }
         }
       )
-
-      return { success: true, data: response.data }
+  
+      // Ensure we have all required properties in the response
+      const responseData = response.data;
+      
+      // If response is a string rather than parsed JSON, try to parse it
+      let formattedData = responseData;
+      if (typeof responseData === 'string') {
+        try {
+          // Try to find JSON in the string
+          const jsonMatch = responseData.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            formattedData = JSON.parse(jsonMatch[0]);
+          } else {
+            // If no JSON found, create a basic structure with the content as code
+            formattedData = {
+              code: responseData,
+              thoughts: ["Automatically extracted from text response"],
+              time_complexity: "Not specified in response",
+              space_complexity: "Not specified in response"
+            };
+          }
+        } catch (error) {
+          console.error("Error parsing response string:", error);
+          formattedData = {
+            code: responseData,
+            thoughts: ["Failed to parse structured data from response"],
+            time_complexity: "Not specified",
+            space_complexity: "Not specified"
+          };
+        }
+      }
+      
+      // Ensure the object has all required properties
+      const result = {
+        code: formattedData.code || "",
+        thoughts: Array.isArray(formattedData.thoughts) ? formattedData.thoughts : ["No specific thoughts provided"],
+        time_complexity: formattedData.time_complexity || "Not specified",
+        space_complexity: formattedData.space_complexity || "Not specified"
+      };
+  
+      return { success: true, data: result };
     } catch (error: any) {
+      // Error handling remains the same
       const mainWindow = this.deps.getMainWindow()
-
+      
       // Handle timeout errors (both 504 and axios timeout)
       if (error.code === "ECONNABORTED" || error.response?.status === 504) {
         // Cancel ongoing API requests
@@ -421,16 +432,7 @@ export class ProcessingHelper {
           error: "Request timed out. Please try again."
         }
       }
-
-      if (error.response?.data?.error?.includes("API Key out of credits")) {
-        if (mainWindow) {
-          mainWindow.webContents.send(
-            this.deps.PROCESSING_EVENTS.OUT_OF_CREDITS
-          )
-        }
-        return { success: false, error: error.response.data.error }
-      }
-
+  
       if (
         error.response?.data?.error?.includes(
           "Please close this window and re-enter a valid Open AI API key."
@@ -443,7 +445,7 @@ export class ProcessingHelper {
         }
         return { success: false, error: error.response.data.error }
       }
-
+  
       return { success: false, error: error.message }
     }
   }
@@ -508,15 +510,6 @@ export class ProcessingHelper {
           success: false,
           error: "Operation timed out after 1 minute. Please try again."
         }
-      }
-
-      if (error.response?.data?.error?.includes("API Key out of credits")) {
-        if (mainWindow) {
-          mainWindow.webContents.send(
-            this.deps.PROCESSING_EVENTS.OUT_OF_CREDITS
-          )
-        }
-        return { success: false, error: error.response.data.error }
       }
 
       if (
