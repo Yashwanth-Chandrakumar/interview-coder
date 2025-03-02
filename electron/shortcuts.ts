@@ -82,12 +82,8 @@ export class ShortcutsHelper {
       this.deps.toggleMainWindow()
     })
 
-    // Keep Ctrl+B as fallback but handle it carefully
-    globalShortcut.register('CommandOrControl+B', (e: KeyboardEvent) => {
-      if (e) {
-        e.preventDefault() // Prevent browser from handling the shortcut
-        e.stopPropagation()
-      }
+    // Modify this registration to remove the KeyboardEvent parameter
+    globalShortcut.register('CommandOrControl+B', () => {
       this.deps.toggleMainWindow()
     })
 

@@ -270,9 +270,11 @@ async function createWindow(): Promise<void> {
   state.mainWindow = new BrowserWindow(windowSettings)
 
   // Ensure window does not appear in Alt+Tab (Windows) and similar task switchers
-  if (process.platform === 'win32' && typeof state.mainWindow.setExcludedFromWindowsAltTab === "function") {
-    state.mainWindow.setExcludedFromWindowsAltTab(true)
+  if (process.platform === 'win32') {
+    // For Windows, we can only use setSkipTaskbar
+    state.mainWindow.setSkipTaskbar(true)
   }
+
   if (process.platform === 'darwin') {
     // For macOS, using window type 'panel' already helps, but you may also set:
     state.mainWindow.setSkipTaskbar(true)
@@ -292,12 +294,11 @@ async function createWindow(): Promise<void> {
     state.mainWindow.setWindowButtonVisibility(false)
     app.dock.hide() // Hide from dock
     
-    // Set window level to floating (above everything)
-    state.mainWindow.setWindowLevel('floating')
+    // Set window level to always float - using setAlwaysOnTop instead of setWindowLevel
+    state.mainWindow.setAlwaysOnTop(true, 'floating')
   } else if (process.platform === 'win32') {
-    // Windows specific settings - without using windows-native-registry
+    // Windows specific settings
     state.mainWindow.setSkipTaskbar(true)
-    // Use electron's built-in methods instead
     state.mainWindow.moveTop()
   }
 
