@@ -91,6 +91,28 @@ export class ShortcutsHelper {
       this.deps.toggleMainWindow()
     })
 
+    // Add language selection shortcuts
+    globalShortcut.register('Alt+P', () => {
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('change-language', 'python');
+      }
+    });
+
+    globalShortcut.register('Alt+J', () => {
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('change-language', 'java');
+      }
+    });
+
+    globalShortcut.register('Alt+C', () => {
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('change-language', 'cpp');
+      }
+    });
+
     // Unregister shortcuts when quitting
     app.on("will-quit", () => {
       globalShortcut.unregisterAll()

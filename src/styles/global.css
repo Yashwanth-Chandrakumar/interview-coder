@@ -1,0 +1,16 @@
+* {
+  cursor: default !important;
+}
+
+/* Add these specific styles for radio inputs */
+input[type="radio"] {
+  cursor: default !important;
+}
+
+input[type="radio"] + span {
+  cursor: default !important;
+}
+
+label:has(input[type="radio"]) {
+  cursor: default !important;
+}

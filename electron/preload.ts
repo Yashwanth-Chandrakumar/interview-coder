@@ -53,6 +53,7 @@ interface ElectronAPI {
   onCreditsUpdated: (callback: (credits: number) => void) => () => void
   onOutOfCredits: (callback: () => void) => () => void
   getPlatform: () => string
+  onLanguageChange: (callback: (language: string) => void) => () => void
 }
 
 export const PROCESSING_EVENTS = {
@@ -251,7 +252,14 @@ const electronAPI = {
       ipcRenderer.removeListener("credits-updated", subscription)
     }
   },
-  getPlatform: () => process.platform
+  getPlatform: () => process.platform,
+  onLanguageChange: (callback: (language: string) => void) => {
+    const subscription = (_: any, language: string) => callback(language)
+    ipcRenderer.on('change-language', subscription)
+    return () => {
+      ipcRenderer.removeListener('change-language', subscription)
+    }
+  }
 } as ElectronAPI
 
 // Before exposing the API

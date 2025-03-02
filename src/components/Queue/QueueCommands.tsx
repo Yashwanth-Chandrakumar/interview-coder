@@ -122,10 +122,10 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[11px] leading-none">Solve </span>
                 <div className="flex gap-1 ml-2">
-                  <button className="bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                  <button className="cursor-default bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
                     {COMMAND_KEY}
                   </button>
-                  <button className="bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
+                  <button className="cursor-default bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70">
                     ↵
                   </button>
                 </div>

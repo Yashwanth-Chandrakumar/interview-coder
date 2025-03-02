@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { supabase } from "../../lib/supabase"
 
 interface LanguageSelectorProps {
@@ -10,53 +10,75 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   currentLanguage,
   setLanguage
 }) => {
-  const handleLanguageChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const newLanguage = e.target.value
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
+  useEffect(() => {
+    // Listen for language change events from main process
+    const unsubscribe = window.electronAPI.onLanguageChange((newLanguage: string) => {
+      handleLanguageChange(newLanguage);
+    });
 
-    if (user) {
-      const { error } = await supabase
-        .from("subscriptions")
-        .update({ preferred_language: newLanguage })
-        .eq("user_id", user.id)
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
-      if (error) {
-        console.error("Error updating language:", error)
-      } else {
-        window.__LANGUAGE__ = newLanguage
-        setLanguage(newLanguage)
+  const handleLanguageChange = async (newLanguage: string) => {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        const { error } = await supabase
+          .from("subscriptions")
+          .update({ preferred_language: newLanguage })
+          .eq("user_id", user.id)
+
+        if (error) {
+          console.error("Error updating language:", error)
+        }
       }
+      
+      // Set the global language variable and update state
+      window.__LANGUAGE__ = newLanguage
+      setLanguage(newLanguage)
+      
+    } catch (error) {
+      console.error("Error in language change:", error)
     }
   }
 
+  const languages = [
+    { value: 'python', label: 'Python', shortcut: 'Alt+P' },
+    { value: 'cpp', label: 'C++', shortcut: 'Alt+C' },
+    { value: 'java', label: 'Java', shortcut: 'Alt+J' }
+  ]
+
   return (
     <div className="mb-3 px-2 space-y-1">
-      <div className="flex items-center justify-between text-[13px] font-medium text-white/90 cursor-default">
+      <div className="flex flex-col gap-2 text-[13px] font-medium text-white/90">
         <span>Language</span>
-        <select
-          value={currentLanguage}
-          onChange={handleLanguageChange}
-          className="bg-white/10 rounded px-2 py-1 text-sm outline-none border border-white/10 focus:border-white/20 hover:bg-white/20 transition-colors cursor-default"
-          style={{ 
-            WebkitAppearance: 'menulist-button',
-            MozAppearance: 'menulist-button',
-            appearance: 'menulist-button'
-          }}
-        >
-          <option value="python" className="cursor-default bg-black/80">Python</option>
-          <option value="javascript" className="cursor-default bg-black/80">JavaScript</option>
-          <option value="java" className="cursor-default bg-black/80">Java</option>
-          <option value="golang" className="cursor-default bg-black/80">Go</option>
-          <option value="cpp" className="cursor-default bg-black/80">C++</option>
-          <option value="swift" className="cursor-default bg-black/80">Swift</option>
-          <option value="kotlin" className="cursor-default bg-black/80">Kotlin</option>
-          <option value="ruby" className="cursor-default bg-black/80">Ruby</option>
-          <option value="sql" className="cursor-default bg-black/80">SQL</option>
-        </select>
+        <div className="space-y-2">
+          {languages.map(({ value, label, shortcut }) => (
+            <label 
+              key={value} 
+              className="flex items-center group select-none"
+            >
+              <input
+                type="radio"
+                name="language"
+                value={value}
+                checked={currentLanguage === value}
+                onChange={() => handleLanguageChange(value)}
+                className="mr-2 cursor-default"
+                style={{ cursor: 'default' }}
+              />
+                <span className="cursor-default">{label}</span>
+              <span className="ml-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                {shortcut}
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   )

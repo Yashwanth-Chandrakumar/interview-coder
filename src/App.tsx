@@ -1,7 +1,6 @@
-import SubscribedApp from "./_pages/SubscribedApp";
-import { UpdateNotification } from "./components/UpdateNotification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import SubscribedApp from "./_pages/SubscribedApp";
 import {
   Toast,
   ToastDescription,
@@ -9,6 +8,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "./components/ui/toast";
+import { UpdateNotification } from "./components/UpdateNotification";
 import { ToastContext } from "./contexts/toast";
 
 // Create a React Query client
