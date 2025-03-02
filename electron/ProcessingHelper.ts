@@ -1,14 +1,11 @@
+import axios from "axios"
+import { app, BrowserWindow } from "electron"
 import fs from "node:fs"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { IProcessingHelperDeps } from "./main"
-import axios from "axios"
-import { app } from "electron"
-import { BrowserWindow } from "electron"
 
 const isDev = !app.isPackaged
-const API_BASE_URL = isDev
-  ? "http://localhost:3000"
-  : "https://www.interviewcoder.co"
+const API_BASE_URL = "https://interview-coder.onrender.com"
 
 export class ProcessingHelper {
   private deps: IProcessingHelperDeps
@@ -241,7 +238,7 @@ export class ProcessingHelper {
         // First API call - extract problem info
         try {
           const extractResponse = await axios.post(
-            `http://localhost:3000/api/extract`,
+            `${ API_BASE_URL}/api/extract`,
             { imageDataList, language },
             {
               signal,
@@ -352,7 +349,7 @@ export class ProcessingHelper {
       }
   
       const response = await axios.post(
-        `http://localhost:3000/api/generate`,
+        `${ API_BASE_URL}/api/generate`,
         { ...problemInfo, language },
         {
           signal,

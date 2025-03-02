@@ -1,4 +1,4 @@
-import { globalShortcut, app } from "electron"
+import { app, globalShortcut } from "electron"
 import { IShortcutsHelperDeps } from "./main"
 
 export class ShortcutsHelper {
@@ -75,7 +75,19 @@ export class ShortcutsHelper {
       this.deps.moveWindowUp()
     })
 
-    globalShortcut.register("CommandOrControl+B", () => {
+    // Use Command+Shift+B on macOS and Alt+B on Windows/Linux to avoid browser conflicts
+    const toggleKey = process.platform === 'darwin' ? 'Command+Shift+B' : 'Alt+B'
+    
+    globalShortcut.register(toggleKey, () => {
+      this.deps.toggleMainWindow()
+    })
+
+    // Keep Ctrl+B as fallback but handle it carefully
+    globalShortcut.register('CommandOrControl+B', (e: KeyboardEvent) => {
+      if (e) {
+        e.preventDefault() // Prevent browser from handling the shortcut
+        e.stopPropagation()
+      }
       this.deps.toggleMainWindow()
     })
 

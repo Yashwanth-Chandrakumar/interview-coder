@@ -1,11 +1,11 @@
-import { app, BrowserWindow, screen, shell, ipcMain } from "electron"
+import * as dotenv from "dotenv"
+import { app, BrowserWindow, screen, shell } from "electron"
 import path from "path"
+import { initAutoUpdater } from "./autoUpdater"
 import { initializeIpcHandlers } from "./ipcHandlers"
 import { ProcessingHelper } from "./ProcessingHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
-import { initAutoUpdater } from "./autoUpdater"
-import * as dotenv from "dotenv"
 
 // Constants
 const isDev = !app.isPackaged
@@ -251,14 +251,75 @@ async function createWindow(): Promise<void> {
     backgroundColor: "#00000000",
     focusable: true,
     skipTaskbar: true,
-    type: "panel",
+    // Change window type for better stacking
+    type: process.platform === 'darwin' ? 'panel' : 'toolbar',
     paintWhenInitiallyHidden: true,
     titleBarStyle: "hidden",
     enableLargerThanScreen: true,
-    movable: true
+    movable: true,
+    simpleFullscreen: false,
+    kiosk: false,
+    // Add these new settings
+    minimizable: false,
+    maximizable: false,
+    opacity: 1,
+    // Better visual state handling
+    visualEffectState: 'active',
   }
 
   state.mainWindow = new BrowserWindow(windowSettings)
+
+  // Ensure window does not appear in Alt+Tab (Windows) and similar task switchers
+  if (process.platform === 'win32' && typeof state.mainWindow.setExcludedFromWindowsAltTab === "function") {
+    state.mainWindow.setExcludedFromWindowsAltTab(true)
+  }
+  if (process.platform === 'darwin') {
+    // For macOS, using window type 'panel' already helps, but you may also set:
+    state.mainWindow.setSkipTaskbar(true)
+  }
+
+  // Set higher level always-on-top priority
+  state.mainWindow.setAlwaysOnTop(true, 'screen-saver')
+
+  // Ensure window appears above fullscreen applications
+  state.mainWindow.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true
+  })
+
+  // Platform specific optimizations
+  if (process.platform === 'darwin') {
+    // macOS specific settings
+    state.mainWindow.setWindowButtonVisibility(false)
+    app.dock.hide() // Hide from dock
+    
+    // Set window level to floating (above everything)
+    state.mainWindow.setWindowLevel('floating')
+  } else if (process.platform === 'win32') {
+    // Windows specific settings - without using windows-native-registry
+    state.mainWindow.setSkipTaskbar(true)
+    // Use electron's built-in methods instead
+    state.mainWindow.moveTop()
+  }
+
+  // Additional window settings after creation
+  state.mainWindow.moveTop()
+  state.mainWindow.focus()
+
+  // Add a periodic check to ensure window stays on top
+  const ensureTopMost = () => {
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.moveTop()
+      state.mainWindow.setAlwaysOnTop(true, 'screen-saver')
+    }
+  }
+  
+  // Check every 1 second to ensure window stays on top
+  const topMostInterval = setInterval(ensureTopMost, 1000)
+  
+  // Clear interval when window is closed
+  state.mainWindow.on('closed', () => {
+    clearInterval(topMostInterval)
+  })
 
   // Add more detailed logging for window events
   state.mainWindow.webContents.on("did-finish-load", () => {
@@ -396,14 +457,18 @@ function showMainWindow(): void {
       })
     }
     state.mainWindow.setIgnoreMouseEvents(false)
-    state.mainWindow.setAlwaysOnTop(true, "floating", 1)
+    state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
+    state.mainWindow.moveTop()
     state.mainWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true
+      visibleOnFullScreen: true,
+      skipTransformProcessType: true
     })
     state.mainWindow.setContentProtection(true)
     state.mainWindow.setOpacity(0)
+    // Use showInactive() so that the window does not steal focus
     state.mainWindow.showInactive()
     state.mainWindow.setOpacity(1)
+    // Remove any explicit focus call to prevent tab switch detection
     state.isWindowVisible = true
   }
 }
@@ -645,29 +710,8 @@ function getHasDebugged(): boolean {
 
 // Export state and functions for other modules
 export {
-  state,
-  createWindow,
-  hideMainWindow,
-  showMainWindow,
-  toggleMainWindow,
-  setWindowDimensions,
-  moveWindowHorizontal,
-  moveWindowVertical,
-  handleAuthCallback,
-  getMainWindow,
-  getView,
-  setView,
-  getScreenshotHelper,
-  getProblemInfo,
-  setProblemInfo,
-  getScreenshotQueue,
-  getExtraScreenshotQueue,
-  clearQueues,
-  takeScreenshot,
-  getImagePreview,
-  deleteScreenshot,
-  setHasDebugged,
-  getHasDebugged
+  clearQueues, createWindow, deleteScreenshot, getExtraScreenshotQueue, getHasDebugged, getImagePreview, getMainWindow, getProblemInfo, getScreenshotHelper, getScreenshotQueue, getView, handleAuthCallback, hideMainWindow, moveWindowHorizontal,
+  moveWindowVertical, setHasDebugged, setProblemInfo, setView, setWindowDimensions, showMainWindow, state, takeScreenshot, toggleMainWindow
 }
 
 app.whenReady().then(initializeApp)
