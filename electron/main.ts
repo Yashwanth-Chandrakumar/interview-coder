@@ -7,6 +7,9 @@ import { ProcessingHelper } from "./ProcessingHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 
+// Add this line to enable experimental web platform features
+app.commandLine.appendSwitch("enable-experimental-web-platform-features")
+
 // Constants
 const isDev = !app.isPackaged
 
