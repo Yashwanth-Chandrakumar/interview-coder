@@ -8,8 +8,8 @@ import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 
 // Add this line to enable experimental web platform features
-app.commandLine.appendSwitch("enable-experimental-web-platform-features")
-
+app.commandLine.appendSwitch("enable-experimental-web-platform-features");
+app.commandLine.appendSwitch("enable-features", "experimental_prefetchInRender,ExperimentalPrefetchInRender,prefetchInRender");
 // Constants
 const isDev = !app.isPackaged
 

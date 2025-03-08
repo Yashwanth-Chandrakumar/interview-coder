@@ -34,7 +34,9 @@ interface ToastState {
   description: string;
   variant: ToastVariant;
 }
-
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled rejection:', event.reason);
+});
 // Root component without any authentication or subscription logic
 function App() {
   // Toast state for notifications
