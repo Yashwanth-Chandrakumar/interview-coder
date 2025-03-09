@@ -70,16 +70,14 @@ const SolutionSection = ({
             maxWidth: "100%",
             margin: 0,
             padding: "1rem",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflowX: "hidden",
-            backgroundColor: "rgba(22, 27, 34, 0.5)"
+            backgroundColor: "rgba(22, 27, 34, 0.5)",
+            overflowX: "auto"
           }}
-          wrapLongLines={true}
+          wrapLongLines={false}
           lineProps={{
-            style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }
+            style: {}
           }}
-          wrapLines={true}
+          wrapLines={false}
         >
           {content as string}
         </SyntaxHighlighter>

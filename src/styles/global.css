@@ -14,3 +14,17 @@ input[type="radio"] + span {
 label:has(input[type="radio"]) {
   cursor: default !important;
 }
+
+/* Styling for code blocks */
+pre {
+  overflow-x: auto !important;
+  white-space: pre !important;
+  max-width: 100% !important;
+}
+
+/* Ensure SyntaxHighlighter scrolls horizontally */
+.react-syntax-highlighter-line-number, 
+.token, 
+.react-syntax-highlighter-line {
+  white-space: pre !important;
+}

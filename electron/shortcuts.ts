@@ -127,6 +127,37 @@ export class ShortcutsHelper {
       }
     });
 
+    // Add horizontal scrolling shortcuts for code blocks
+    globalShortcut.register("Alt+Left", () => {
+      console.log("Alt+Left pressed. Scrolling code block left.")
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.executeJavaScript(`
+          (function() {
+            const codeBlocks = document.querySelectorAll('pre');
+            codeBlocks.forEach(block => {
+              block.scrollLeft = Math.max(0, block.scrollLeft - 100);
+            });
+          })();
+        `);
+      }
+    });
+
+    globalShortcut.register("Alt+Right", () => {
+      console.log("Alt+Right pressed. Scrolling code block right.")
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.executeJavaScript(`
+          (function() {
+            const codeBlocks = document.querySelectorAll('pre');
+            codeBlocks.forEach(block => {
+              block.scrollLeft = block.scrollLeft + 100;
+            });
+          })();
+        `);
+      }
+    });
+
     // Unregister shortcuts when quitting
     app.on("will-quit", () => {
       globalShortcut.unregisterAll()
