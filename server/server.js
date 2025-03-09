@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { createWorker } = require("tesseract.js");
+const { TextractClient, DetectDocumentTextCommand } = require("@aws-sdk/client-textract");
 const dotenv = require("dotenv");
 const Groq = require("groq-sdk");
 const fs = require("fs");
@@ -12,6 +12,15 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Initialize AWS Textract client
+const textractClient = new TextractClient({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: "AKIAV5D5D3BBYBMSARWE",
+    secretAccessKey: "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"
+  }
+});
 
 // Increase payload size for image data
 app.use(cors());
@@ -30,43 +39,69 @@ app.use((req, res, next) => {
 });
 
 // Initialize Groq SDK instance with your API key
-const apiKey = process.env.GROQ_API_KEY || " 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";
+const apiKey = process.env.GROQ_API_KEY || "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";
 console.log(`Using Groq API key: ${apiKey.substring(0, 10)}...`);
 const groq = new Groq({ apiKey });
 
 // Supported Tesseract languages
 const SUPPORTED_LANGUAGES = ["eng", "fra", "deu", "spa", "ita", "por", "chi_sim", "chi_tra", "jpn", "kor", "ara", "hin", "rus"];
 
-// Function to save base64 image to a temporary file
+// Save base64 image to a temporary file
 const saveBase64ImageToTemp = (base64Data) => {
-  // Generate a random filename
-  const filename = path.join(tempDir, `image-${crypto.randomBytes(8).toString("hex")}.png`);
-  
-  // Remove the data URL prefix if present (e.g., "data:image/png;base64,")
-  let imageData = base64Data;
-  if (base64Data.includes(';base64,')) {
-    imageData = base64Data.split(';base64,').pop();
-  }
-  
-  // Write the file
-  fs.writeFileSync(filename, Buffer.from(imageData, 'base64'));
-  return filename;
+  const base64Image = base64Data.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(base64Image, "base64");
+  const fileName = `image_${crypto.randomBytes(16).toString("hex")}.png`;
+  const filePath = path.join(tempDir, fileName);
+  fs.writeFileSync(filePath, buffer);
+  return filePath;
 };
 
-// --- OCR Extraction Endpoint ---
+// Extract text from an image using AWS Textract
+const extractTextWithTextract = async (imagePath) => {
+  try {
+    // Read the image file into a buffer
+    const imageBuffer = fs.readFileSync(imagePath);
+    
+    // Prepare the Textract command
+    const command = new DetectDocumentTextCommand({
+      Document: {
+        Bytes: imageBuffer
+      }
+    });
+    
+    // Process the image with Textract
+    const response = await textractClient.send(command);
+    
+    // Extract and concatenate all detected text blocks
+    let extractedText = "";
+    if (response.Blocks) {
+      // Filter for text blocks and sort by position (top to bottom)
+      const textBlocks = response.Blocks
+        .filter(block => block.BlockType === "LINE")
+        .sort((a, b) => {
+          return (a.Geometry?.BoundingBox?.Top || 0) - (b.Geometry?.BoundingBox?.Top || 0);
+        });
+      
+      // Concatenate the text from each block
+      extractedText = textBlocks.map(block => block.Text).join("\n");
+    }
+    
+    return extractedText;
+  } catch (error) {
+    console.error("Textract processing error:", error);
+    throw new Error(`AWS Textract error: ${error.message}`);
+  }
+};
+
+// API endpoint for text extraction from images
 app.post("/api/extract", async (req, res) => {
+  const { imageDataList, language = "eng" } = req.body;
   const tempFiles = [];
   
   try {
-    const { imageDataList, language } = req.body;
-    if (!imageDataList || !Array.isArray(imageDataList)) {
-      return res.status(400).json({ error: "Invalid imageDataList" });
+    if (!imageDataList || !Array.isArray(imageDataList) || imageDataList.length === 0) {
+      return res.status(400).json({ error: "No images provided" });
     }
-
-    // Ensure the language is supported by Tesseract
-    // Default to English if not specified or not supported
-    const ocrLang = SUPPORTED_LANGUAGES.includes(language) ? language : "eng";
-    console.log(`Using OCR language: ${ocrLang}`);
     
     const ocrResults = [];
 
@@ -77,34 +112,29 @@ app.post("/api/extract", async (req, res) => {
       tempFiles.push(imagePath);
       console.log(`Saved temporary image to: ${imagePath}`);
       
-      // Create a new worker for each image
-      const worker = await createWorker(ocrLang);
-      
-      // Recognize text from the image file
-      const { data } = await worker.recognize(imagePath);
-      ocrResults.push(data.text);
-      
-      // Terminate the worker after use
-      await worker.terminate();
+      // Extract text using AWS Textract
+      const extractedText = await extractTextWithTextract(imagePath);
+      ocrResults.push(extractedText);
     }
 
     const problemText = ocrResults.join("\n");
-    console.log("OCR extraction successful. Extracted text:", problemText.substring(0, 100) + (problemText.length > 100 ? "..." : ""));
+    console.log("AWS Textract extraction successful. Extracted text:", 
+      problemText.substring(0, 100) + (problemText.length > 100 ? "..." : ""));
     
     res.json({ problemText });
   } catch (error) {
-    console.error("OCR extraction error:", error);
-    res.status(500).json({ error: "OCR extraction failed", details: error.message });
+    console.error("Text extraction error:", error);
+    res.status(500).json({ 
+      error: "Text extraction failed", 
+      details: error.message 
+    });
   } finally {
     // Clean up temporary files
     tempFiles.forEach(file => {
       try {
-        if (fs.existsSync(file)) {
-          fs.unlinkSync(file);
-          console.log(`Deleted temporary file: ${file}`);
-        }
+        fs.unlinkSync(file);
       } catch (err) {
-        console.error(`Error deleting temporary file ${file}:`, err);
+        console.error(`Failed to delete temporary file ${file}:`, err);
       }
     });
   }
@@ -133,9 +163,13 @@ app.post("/api/generate", async (req, res) => {
       {
         role: "user",
         content: `Solve the following problem in ${lang}:\n${problemText}\n
+        IMPORTANT: Provide a COMPLETELY ORIGINAL, PLAGIARISM-FREE solution. DO NOT copy existing solutions from websites, forums, or code repositories.
+        
+        Create a solution that demonstrates deep understanding of the problem and uses appropriate algorithms and data structures.
+        
         Provide your solution in the following JSON format:
         {
-          "code": "your complete code solution here",
+          "code": "your complete original code solution here",
           "thoughts": ["thought 1", "thought 2", "thought 3"], 
           "time_complexity": "O(n) explanation here",
           "space_complexity": "O(n) explanation here"
@@ -225,9 +259,13 @@ app.post("/api/debug", async (req, res) => {
       {
         role: "user",
         content: `Debug the following problem in ${lang}:\n${problemText}\n
-        Provide your debug solution in the following JSON format:
+        IMPORTANT: Provide a COMPLETELY ORIGINAL, PLAGIARISM-FREE solution. DO NOT copy existing solutions from websites, forums, or code repositories.
+        
+        Create a solution that demonstrates deep understanding of the problem and uses appropriate algorithms and data structures.
+        
+        Provide your solution in the following JSON format:
         {
-          "code": "your complete fixed code solution here",
+          "code": "your complete original code solution here",
           "thoughts": ["debug observation 1", "debug observation 2", "debug observation 3"], 
           "time_complexity": "O(n) explanation here",
           "space_complexity": "O(n) explanation here"

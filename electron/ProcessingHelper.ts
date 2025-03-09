@@ -5,7 +5,7 @@ import { ScreenshotHelper } from "./ScreenshotHelper"
 import { IProcessingHelperDeps } from "./main"
 
 const isDev = !app.isPackaged
-const API_BASE_URL = "https://interview-coder.onrender.com"
+const API_BASE_URL = "http://localhost:3000"
 
 export class ProcessingHelper {
   private deps: IProcessingHelperDeps

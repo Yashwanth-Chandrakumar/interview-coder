@@ -10,12 +10,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-textract": "^3.758.0",
     "@google-cloud/vision": "^4.3.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "groq-sdk": "^0.15.0",
-    "tesseract.js": "^6.0.0"
+    "groq-sdk": "^0.15.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

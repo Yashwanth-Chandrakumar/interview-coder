@@ -5,9 +5,9 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
+import { useToast } from "../contexts/toast"
 import { Screenshot } from "../types/screenshots"
 import { ComplexitySection, ContentSection } from "./Solutions"
-import { useToast } from "../contexts/toast"
 
 const CodeSection = ({
   title,
@@ -41,10 +41,15 @@ const CodeSection = ({
             margin: 0,
             padding: "1rem",
             whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
+            wordBreak: "break-word",
+            overflowX: "hidden",
             backgroundColor: "rgba(22, 27, 34, 0.5)"
           }}
           wrapLongLines={true}
+          lineProps={{
+            style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }
+          }}
+          wrapLines={true}
         >
           {code as string}
         </SyntaxHighlighter>
