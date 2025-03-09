@@ -7,9 +7,14 @@ import { ProcessingHelper } from "./ProcessingHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 
-// Add this line to enable experimental web platform features
+// Set feature flags properly before the app is ready
+// This must happen before any browser windows are created
 app.commandLine.appendSwitch("enable-experimental-web-platform-features");
-app.commandLine.appendSwitch("enable-features", "experimental_prefetchInRender,ExperimentalPrefetchInRender,prefetchInRender");
+// Fix the experimental prefetch flags
+app.commandLine.appendSwitch("enable-features", "PrefetchInRender");
+// Set additional renderer flags
+app.commandLine.appendSwitch("disable-features", "OutOfBlinkCors");
+
 // Constants
 const isDev = !app.isPackaged
 
@@ -86,6 +91,7 @@ export interface IShortcutsHelperDeps {
   moveWindowRight: () => void
   moveWindowUp: () => void
   moveWindowDown: () => void
+  resetWindowPosition?: () => void
 }
 
 export interface IIpcHandlerDeps {
@@ -108,6 +114,8 @@ export interface IIpcHandlerDeps {
   moveWindowRight: () => void
   moveWindowUp: () => void
   moveWindowDown: () => void
+  setIsWindowVisible?: (visible: boolean) => void
+  resetWindowPosition?: () => void
 }
 
 // Initialize helpers
@@ -151,7 +159,8 @@ function initializeHelpers() {
         )
       ),
     moveWindowUp: () => moveWindowVertical((y) => y - state.step),
-    moveWindowDown: () => moveWindowVertical((y) => y + state.step)
+    moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+    resetWindowPosition
   } as IShortcutsHelperDeps)
 }
 
@@ -454,26 +463,53 @@ function hideMainWindow(): void {
 
 function showMainWindow(): void {
   if (!state.mainWindow?.isDestroyed()) {
-    if (state.windowPosition && state.windowSize) {
-      state.mainWindow.setBounds({
-        ...state.windowPosition,
-        ...state.windowSize
+    try {
+      if (state.windowPosition && state.windowSize) {
+        state.mainWindow.setBounds({
+          ...state.windowPosition,
+          ...state.windowSize
+        })
+      }
+      state.mainWindow.setIgnoreMouseEvents(false)
+      state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
+      state.mainWindow.moveTop()
+      state.mainWindow.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true,
+        skipTransformProcessType: true
       })
+      state.mainWindow.setContentProtection(true)
+      state.mainWindow.setOpacity(0)
+      
+      // Make sure window is shown
+      if (!state.mainWindow.isVisible()) {
+        state.mainWindow.show()
+      } else {
+        // Use showInactive() so that the window does not steal focus
+        state.mainWindow.showInactive()
+      }
+      
+      // Ensure opacity is set to visible
+      state.mainWindow.setOpacity(1)
+      
+      // Remove any explicit focus call to prevent tab switch detection
+      state.isWindowVisible = true
+      
+      console.log("Window shown successfully")
+    } catch (error) {
+      console.error("Error showing main window:", error)
+      
+      // Fallback approach if the normal method fails
+      try {
+        state.mainWindow.show()
+        state.mainWindow.setOpacity(1)
+        state.isWindowVisible = true
+        console.log("Window shown using fallback method")
+      } catch (fallbackError) {
+        console.error("Fallback window show failed:", fallbackError)
+      }
     }
-    state.mainWindow.setIgnoreMouseEvents(false)
-    state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
-    state.mainWindow.moveTop()
-    state.mainWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true,
-      skipTransformProcessType: true
-    })
-    state.mainWindow.setContentProtection(true)
-    state.mainWindow.setOpacity(0)
-    // Use showInactive() so that the window does not steal focus
-    state.mainWindow.showInactive()
-    state.mainWindow.setOpacity(1)
-    // Remove any explicit focus call to prevent tab switch detection
-    state.isWindowVisible = true
+  } else {
+    console.warn("Cannot show window: Window is destroyed or null")
   }
 }
 
@@ -577,7 +613,9 @@ async function initializeApp() {
           )
         ),
       moveWindowUp: () => moveWindowVertical((y) => y - state.step),
-      moveWindowDown: () => moveWindowVertical((y) => y + state.step)
+      moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+      setIsWindowVisible,
+      resetWindowPosition
     })
     await createWindow()
     state.shortcutsHelper?.registerGlobalShortcuts()
@@ -650,7 +688,16 @@ function getView(): "queue" | "solutions" | "debug" {
 
 function setView(view: "queue" | "solutions" | "debug"): void {
   state.view = view
-  state.screenshotHelper?.setView(view)
+  if (state.screenshotHelper) {
+    console.log(`Setting view in ScreenshotHelper: ${view}`)
+    state.screenshotHelper.setView(view)
+    
+    // When resetting to queue view, ensure window position is visible
+    if (view === "queue") {
+      // Reset window position to ensure visibility
+      resetWindowPosition();
+    }
+  }
 }
 
 function getScreenshotHelper(): ScreenshotHelper | null {
@@ -712,10 +759,45 @@ function getHasDebugged(): boolean {
   return state.hasDebugged
 }
 
-// Export state and functions for other modules
+function setIsWindowVisible(visible: boolean): void {
+  state.isWindowVisible = visible;
+}
+
+function resetWindowPosition(): void {
+  if (!state.mainWindow || state.mainWindow.isDestroyed()) {
+    console.warn("Cannot reset window position: Window is destroyed or null");
+    return;
+  }
+
+  console.log("Resetting window position to top-left corner (initial position)");
+  
+  // Reset to the initial positions as set in createWindow
+  const x = 0; // Initial x position is 0
+  const y = 50; // Initial y position is 50
+  
+  // Set window size - maintain current size or use default
+  const windowWidth = state.windowSize?.width || 600;
+  const windowHeight = state.windowSize?.height || 600;
+  
+  // Update current position in state to match initial values
+  state.currentX = x;
+  state.currentY = y;
+  
+  // Set window bounds and ensure it's visible
+  state.mainWindow.setBounds({
+    x: x,
+    y: y,
+    width: windowWidth,
+    height: windowHeight
+  });
+  
+  // Log the new position
+  console.log(`Window reset to initial position: (${x}, ${y}), size: ${windowWidth}x${windowHeight}`);
+}
+
 export {
   clearQueues, createWindow, deleteScreenshot, getExtraScreenshotQueue, getHasDebugged, getImagePreview, getMainWindow, getProblemInfo, getScreenshotHelper, getScreenshotQueue, getView, handleAuthCallback, hideMainWindow, moveWindowHorizontal,
-  moveWindowVertical, setHasDebugged, setProblemInfo, setView, setWindowDimensions, showMainWindow, state, takeScreenshot, toggleMainWindow
+  moveWindowVertical, resetWindowPosition, setHasDebugged, setIsWindowVisible, setProblemInfo, setView, setWindowDimensions, showMainWindow, state, takeScreenshot, toggleMainWindow
 }
 
 app.whenReady().then(initializeApp)

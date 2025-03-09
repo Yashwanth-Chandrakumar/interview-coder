@@ -51,6 +51,24 @@ export class ShortcutsHelper {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send("reset-view")
         mainWindow.webContents.send("reset")
+        
+        // Make sure window is properly positioned and visible
+        setTimeout(() => {
+          // Reset window position first to ensure it's on screen
+          if (this.deps.resetWindowPosition) {
+            this.deps.resetWindowPosition();
+            console.log("Reset window position to ensure visibility");
+          }
+          
+          // If window is not visible, make it visible
+          if (this.deps.isVisible && !this.deps.isVisible()) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              console.log("Ensuring window remains visible after reset");
+              mainWindow.setOpacity(1);
+              mainWindow.show();
+            }
+          }
+        }, 250); // Increased delay for more reliable reset
       }
     })
 

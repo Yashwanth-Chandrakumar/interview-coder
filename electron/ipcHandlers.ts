@@ -1,8 +1,8 @@
 // ipcHandlers.ts
 
-import { ipcMain, shell } from "electron"
 import { createClient } from "@supabase/supabase-js"
 import { randomBytes } from "crypto"
+import { ipcMain, shell } from "electron"
 import { IIpcHandlerDeps } from "./main"
 
 export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
@@ -234,6 +234,25 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
         // Send reset events in sequence
         mainWindow.webContents.send("reset-view")
         mainWindow.webContents.send("reset")
+        
+        // Ensure window is visible and properly positioned after reset
+        setTimeout(() => {
+          // Reset window position to ensure it's visible on screen
+          if (deps.resetWindowPosition) {
+            deps.resetWindowPosition();
+          }
+          
+          // Ensure window is visible
+          if (!mainWindow.isVisible()) {
+            mainWindow.show();
+          }
+          mainWindow.setOpacity(1);
+          
+          // Update visibility state
+          if (deps.setIsWindowVisible) {
+            deps.setIsWindowVisible(true);
+          }
+        }, 200);
       }
 
       return { success: true }
